@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@4.5.2/dist/darkly/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">Ultimate Coach</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="vod.html">Vod Review</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="players.html">Players</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="matches.html">Matches</a>
+                </li>
+            </ul>
+        </div>
+        <button id="logoutBtn" class="btn btn-outline-light ms-auto ms-lg-3" title="Logout" style="margin-left:auto;">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+    </nav>
+
+    <!-- Responsive Content Section -->
+    <div class="container mt-4">
+        <div class="row g-4">
+            <!-- Win Rate Card -->
+            <div class="col-12 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="text-center text-primary">Win Rate</h3>
+                        <select id="drpWin" class="form-select w-auto  ">
+                            <option value="all">All</option>
+                        </select>
+                        <canvas id="myPieChart" style="max-width: 100%; height: auto;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stages Table Card -->
+            <div class="col-12 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h1 class="text-center text-primary">Stages</h1>
+                        <select id="drpStage" class="form-select w-auto mb-4">
+                            <option value="all">All</option>
+                        </select>
+                        <table id="tblStages" class="table table-bordered">
+                            <thead class="bg-primary text-white">
+                                <tr>
+                                    <th>Stage Name</th>
+                                    <th>Win Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white text-dark">
+                                <tr>
+                                    <td colspan="2">No match data found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let matches = [];
+        let stages = [];
+        let characters = [];
+        let selectedCharacter = 'all';
+
+        async function fetchData() {
+            const sessionID = localStorage.getItem('sessionID');
+            if (!sessionID) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Not logged in',
+                    text: 'You must be logged in to view your stats.'
+                });
+                matches = [];
+                stages = [];
+                characters = [];
+                return;
+            }
+            try {
+                // Step 1: Get all sets
+                const sets = await fetch('http://localhost:8000/api/sets?sessionID=' + sessionID).then(r => r.json());
+                // Step 2: For each set, get matches
+                let allMatches = [];
+                for (const set of sets) {
+                    const setID = set.setID || set.setId;
+                    if (!setID) continue;
+                    const setMatches = await fetch('http://localhost:8000/api/matches?sessionID=' + sessionID + '&setID=' + setID).then(r => r.json());
+                    allMatches = allMatches.concat(setMatches);
+                }
+                matches = allMatches;
+                // Step 3: Get stages and characters
+                stages = await fetch('http://localhost:8000/api/stages?sessionID=' + sessionID).then(r => r.json());
+                characters = await fetch('http://localhost:8000/api/characters?sessionID=' + sessionID).then(r => r.json());
+            } catch (err) {
+                console.error('Error fetching data:', err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to fetch data from the server.'
+                });
+                matches = [];
+                stages = [];
+                characters = [];
+            }
+        }
+
+        function getPlayedCharacterIDs() {
+            // Collect all unique character IDs the user has played (antChar or userCharacter)
+            const ids = new Set();
+            for (const m of matches) {
+                if (m.antChar) ids.add(m.antChar);
+                if (m.userCharacter) ids.add(m.userCharacter);
+            }
+            return Array.from(ids);
+        }
+
+        function populateCharacterDropdowns() {
+            const drpWin = document.getElementById('drpWin');
+            const drpStage = document.getElementById('drpStage');
+            if (!matches.length || !characters.length) {
+                drpWin.innerHTML = '<option value="all">No characters found</option>';
+                drpStage.innerHTML = '<option value="all">No characters found</option>';
+                return;
+            }
+            const playedIDs = getPlayedCharacterIDs();
+            const playedChars = characters.filter(c => playedIDs.includes(c.characterID));
+            if (!playedChars.length) {
+                drpWin.innerHTML = '<option value="all">No characters found</option>';
+                drpStage.innerHTML = '<option value="all">No characters found</option>';
+                return;
+            }
+            drpWin.innerHTML = '<option value="all">All</option>' + playedChars.map(c => `<option value="${c.characterID}">${c.characterName}</option>`).join('');
+            drpStage.innerHTML = '<option value="all">All</option>' + playedChars.map(c => `<option value="${c.characterID}">${c.characterName}</option>`).join('');
+        }
+
+        function calculateStats() {
+            let filteredMatches = matches;
+            if (selectedCharacter !== 'all') {
+                filteredMatches = matches.filter(m => m.antChar == selectedCharacter || m.userCharacter == selectedCharacter);
+            }
+            // Pie chart data
+            const winCount = filteredMatches.filter(m => m.win == 1).length;
+            const lossCount = filteredMatches.filter(m => m.win == 0).length;
+            // Stage stats
+            const stageStats = {};
+            for (const s of stages) {
+                const stageMatches = filteredMatches.filter(m => m.stage == s.stageID || m.stageID == s.stageID);
+                const stageWins = stageMatches.filter(m => m.win == 1).length;
+                const stageTotal = stageMatches.length;
+                stageStats[s.stageID] = stageTotal > 0 ? Math.round((stageWins / stageTotal) * 100) : null;
+            }
+            return { winCount, lossCount, stageStats };
+        }
+
+        function updatePieChart(chart, winCount, lossCount) {
+            chart.data.datasets[0].data = [winCount, lossCount];
+            chart.update();
+        }
+
+        function updateStagesTable(stageStats) {
+            const tbody = document.querySelector('#tblStages tbody');
+            tbody.innerHTML = '';
+            if (!matches.length) {
+                tbody.innerHTML = '<tr><td colspan="2">No match data found.</td></tr>';
+                return;
+            }
+            for (const s of stages) {
+                const winRate = stageStats[s.stageID];
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${s.stageName}</td>
+                        <td>${winRate !== null ? winRate + '%' : 'N/A'}</td>
+                    </tr>
+                `;
+            }
+        }
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            const sessionID = localStorage.getItem('sessionID');
+            if (sessionID) {
+                await fetch('http://localhost:8000/api/logout', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionID })
+                });
+            }
+            localStorage.removeItem('sessionID');
+            window.location.href = 'login.html';
+        });
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchData();
+            console.log('matches:', matches);
+            console.log('characters:', characters);
+            populateCharacterDropdowns();
+            let { winCount, lossCount, stageStats } = calculateStats();
+            // Pie chart setup
+            const successColor = getComputedStyle(document.documentElement).getPropertyValue('--bs-success').trim() || '#28a745';
+            const dangerColor = getComputedStyle(document.documentElement).getPropertyValue('--bs-danger').trim() || '#dc3545';
+            const ctx = document.getElementById('myPieChart').getContext('2d');
+            const data = {
+                labels: ['Win', 'Loss'],
+                datasets: [{
+                    label: 'Win Rate',
+                    data: [winCount, lossCount],
+                    backgroundColor: [successColor, dangerColor],
+                    borderWidth: 1
+                }]
+            };
+            const config = {
+                type: 'pie',
+                data: data,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Win Rate' }
+                    }
+                }
+            };
+            const pieChart = new Chart(ctx, config);
+            updateStagesTable(stageStats);
+            // Dropdown change events
+            document.getElementById('drpWin').addEventListener('change', e => {
+                selectedCharacter = e.target.value;
+                const stats = calculateStats();
+                updatePieChart(pieChart, stats.winCount, stats.lossCount);
+                updateStagesTable(stats.stageStats);
+            });
+            document.getElementById('drpStage').addEventListener('change', e => {
+                selectedCharacter = e.target.value;
+                const stats = calculateStats();
+                updatePieChart(pieChart, stats.winCount, stats.lossCount);
+                updateStagesTable(stats.stageStats);
+            });
+        });
+    </script>
+
+    <script src="js/lib/dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+</html>

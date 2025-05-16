@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vod Review</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@4.5.2/dist/darkly/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">Ultimate Coach</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="vod.html">Vod Review</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="players.html">Players</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="matches.html">Matches</a>
+                </li>
+            </ul>
+        </div>
+        <button id="logoutBtn" class="btn btn-outline-light ms-auto ms-lg-3" title="Logout" style="margin-left:auto;">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+    </nav>
+    
+    <!-- Add a filter bar above the video section -->
+    <div class="d-flex justify-content-center align-items-center mt-3">
+        <div class="card col-11 col-md-10 col-lg-8">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h1 class="text-primary mb-0">Vod Review</h1>
+                    <button id="addVideoBtn" class="btn btn-primary">
+                        <i class="fa-solid fa-plus"></i> Add Video
+                    </button>
+                </div>
+                <div class="mb-3">
+                    <input id="filterInput" type="text" class="form-control" placeholder="Filter by Opponent Name">
+                </div>
+               
+                <div class="d-flex justify-content-center">
+                    <iframe id="videoFrame" class="w-100" style="aspect-ratio: 16 / 9;" src="https://www.youtube.com/embed/A51Iy9saPo0?si=--QvEn-AcNb9fDyM&start=628" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                </div>
+                <div class="d-flex justify-content-between my-3">
+                    <button id="prevBtn" class="btn btn-primary">Previous</button>
+                    <button id="nextBtn" class="btn btn-primary">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-center align-items-center mt-3">
+        <div class="card col-11 col-md-10 col-lg-8">
+            <div class="card-body">
+                <textarea id="noteInput" class="form-control mb-3" rows="6" placeholder="Write your notes here..."></textarea>
+                <div class="d-flex justify-content-end">
+                    <button id="saveNoteBtn" class="btn btn-primary">
+                        <i class="fa-solid fa-file"></i> Save Note
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // --- VOD DATA LOGIC ---
+        let videoLinks = [];
+        let usableVideoLinks = [];
+        let currentIndex = 0;
+        let currentNote = '';
+        const sessionID = localStorage.getItem('sessionID');
+
+        // Get references to buttons, iframe, and filter input
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const videoFrame = document.getElementById('videoFrame');
+        const addVideoBtn = document.getElementById('addVideoBtn');
+        const filterInput = document.getElementById('filterInput');
+        const noteInput = document.getElementById('noteInput');
+        const saveNoteBtn = document.getElementById('saveNoteBtn');
+
+        // Fetch VODs from backend
+        async function fetchVods() {
+            if (!sessionID) return;
+            const vods = await fetch('http://localhost:8000/api/vods?sessionID=' + sessionID).then(r => r.json());
+            videoLinks = vods.map(v => ({ url: convertToEmbedLink(v.link), opponent: v.opponent, note: v.note, link: v.link }));
+            usableVideoLinks = [...videoLinks];
+            currentIndex = 0;
+            updateVideoDisplay();
+        }
+
+        function updateVideoDisplay() {
+            if (usableVideoLinks.length > 0) {
+                videoFrame.src = usableVideoLinks[currentIndex].url;
+                noteInput.value = usableVideoLinks[currentIndex].note || '';
+            } else {
+                videoFrame.src = '';
+                noteInput.value = '';
+            }
+        }
+
+        prevBtn.addEventListener('click', () => {
+            if (!usableVideoLinks.length) return;
+            currentIndex = (currentIndex - 1 + usableVideoLinks.length) % usableVideoLinks.length;
+            updateVideoDisplay();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (!usableVideoLinks.length) return;
+            currentIndex = (currentIndex + 1) % usableVideoLinks.length;
+            updateVideoDisplay();
+        });
+
+        filterInput.addEventListener('input', () => {
+            const filterText = filterInput.value.trim().toLowerCase();
+            usableVideoLinks = videoLinks.filter(video => video.opponent.toLowerCase().includes(filterText));
+            currentIndex = 0;
+            updateVideoDisplay();
+        });
+
+        // Save note functionality
+        saveNoteBtn.addEventListener('click', async () => {
+            if (!usableVideoLinks.length) return;
+            const note = noteInput.value.trim();
+            const link = usableVideoLinks[currentIndex].link;
+            if (!note) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Empty Note',
+                    text: 'Please write something before saving.'
+                });
+                return;
+            }
+            // Save note to backend
+            const res = await fetch('http://localhost:8000/api/notes', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionID, note, link })
+            });
+            if (res.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Note Saved',
+                    text: 'Your note has been saved successfully!'
+                });
+                // Update local note
+                usableVideoLinks[currentIndex].note = note;
+                const idx = videoLinks.findIndex(v => v.link === link);
+                if (idx !== -1) videoLinks[idx].note = note;
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to save note.'
+                });
+            }
+        });
+
+        // Function to convert YouTube link to embed format
+        function convertToEmbedLink(url) {
+            try {
+                const urlObj = new URL(url);
+                if (urlObj.hostname === "youtu.be") {
+                    let videoId = urlObj.pathname.substring(1);
+                    let embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                    if (urlObj.searchParams.has("t")) {
+                        let startTime = urlObj.searchParams.get("t").replace("t=", "");
+                        embedUrl += `?start=${startTime}`;
+                    }
+                    return embedUrl;
+                } else if (urlObj.hostname === "www.youtube.com" && urlObj.pathname === "/watch") {
+                    let videoId = urlObj.searchParams.get("v");
+                    let embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                    if (urlObj.searchParams.has("t")) {
+                        let startTime = urlObj.searchParams.get("t").replace("t=", "");
+                        embedUrl += `?start=${startTime}`;
+                    }
+                    return embedUrl;
+                } else {
+                    throw new Error("Invalid YouTube URL");
+                }
+            } catch (error) {
+                return null;
+            }
+        }
+
+        // Add Video button: (optional, can be left as is or updated to POST to backend)
+        addVideoBtn.addEventListener('click', () => {
+            Swal.fire({
+                title: 'Add a YouTube Video',
+                html: `
+                    <input id="videoUrl" class="swal2-input" placeholder="YouTube Video URL">
+                    <input id="opponentName" class="swal2-input" placeholder="Opponent Name">
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Add Video',
+                preConfirm: () => {
+                    const videoUrl = document.getElementById('videoUrl').value.trim();
+                    const opponentName = document.getElementById('opponentName').value.trim();
+                    if (!videoUrl) {
+                        Swal.showValidationMessage('Please enter a valid YouTube URL!');
+                        return false;
+                    }
+                    if (!opponentName) {
+                        Swal.showValidationMessage('Please enter an opponent name!');
+                        return false;
+                    }
+                    return { videoUrl, opponentName };
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const embedUrl = convertToEmbedLink(result.value.videoUrl);
+                    if (embedUrl) {
+                        // Optionally POST to backend
+                        const res = await fetch('http://localhost:8000/api/vods', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sessionID, opponent: result.value.opponentName, link: result.value.videoUrl })
+                        });
+                        if (res.ok) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Video Added',
+                                text: `The video has been added to your playlist with opponent: ${result.value.opponentName}!`
+                            });
+                            await fetchVods();
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Failed to add video.'
+                            });
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Invalid URL',
+                            text: 'Please enter a valid YouTube URL!'
+                        });
+                    }
+                }
+            });
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            const sessionID = localStorage.getItem('sessionID');
+            if (sessionID) {
+                await fetch('http://localhost:8000/api/logout', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionID })
+                });
+            }
+            localStorage.removeItem('sessionID');
+            window.location.href = 'login.html';
+        });
+
+        // On load, fetch VODs
+        document.addEventListener('DOMContentLoaded', fetchVods);
+    </script>
+</body>
+</html>

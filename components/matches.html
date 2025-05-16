@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sets Against Players</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@4.5.2/dist/darkly/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .dataTables_filter input {
+            background-color: white !important;
+            color: black;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        .dataTables_length select {
+            background-color: white !important;
+            color: black;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        .swal2-popup .swal2-title {
+            font-size: 24px;
+        }
+        .swal2-popup .table {
+            font-size: 16px;
+        }
+        @media (max-width: 768px) {
+            .swal2-popup .swal2-title {
+                font-size: 18px;
+            }
+            .swal2-popup .table {
+                font-size: 14px;
+            }
+        }
+        @media (max-width: 576px) {
+            .swal2-popup .swal2-title {
+                font-size: 16px;
+            }
+            .swal2-popup .table {
+                font-size: 12px;
+            }
+        }
+        .responsive-swal-popup {
+            width: 80% !important;
+        }
+        @media (max-width: 768px) {
+            .responsive-swal-popup {
+                width: 95% !important;
+            }
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        @media (max-width: 768px) {
+            .table {
+                font-size: 14px;
+            }
+        }
+        @media (max-width: 576px) {
+            .table {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">Ultimate Coach</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="vod.html">Vod Review</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="players.html">Players</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="matches.html">Matches</a>
+                </li>
+            </ul>
+        </div>
+        <button id="logoutBtn" class="btn btn-outline-light ms-auto ms-lg-3" title="Logout" style="margin-left:auto;">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+    </nav>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="text-center">My Sets</h3>
+                        <button class="btn btn-primary mb-3" onclick="addNewSet()">Add New Set</button>
+                        <div class="mb-3 d-flex justify-content-end">
+                            <input id="opponentSearch" type="text" class="form-control w-50" placeholder="Search by Opponent Name...">
+                        </div>
+                        <div class="table-responsive">
+                            <table id="tblSets" class="table table-bordered">
+                                <thead class="bg-primary text-white">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Opponent</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white text-dark">
+                                    <tr>
+                                        <td>2025-05-13</td>
+                                        <td>Frosty</td>
+                                        <td><button class="btn btn-primary" onclick="viewSetDetails(this)">View Details</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        let sets = [];
+        let stages = [];
+        let characters = [];
+
+        function fetchStagesAndCharacters() {
+            const sessionID = localStorage.getItem('sessionID');
+            return Promise.all([
+                fetch('http://localhost:8000/api/stages?sessionID=' + sessionID).then(res => res.json()),
+                fetch('http://localhost:8000/api/characters?sessionID=' + sessionID).then(res => res.json())
+            ]).then(([stagesData, charactersData]) => {
+                stages = stagesData;
+                characters = charactersData;
+            });
+        }
+
+        function fetchSets() {
+            const sessionID = localStorage.getItem('sessionID');
+            fetch('http://localhost:8000/api/sets?sessionID=' + sessionID)
+                .then(res => res.json())
+                .then(data => {
+                    sets = data;
+                    updateTable();
+                });
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            // Disable Add New Set button until data is loaded
+            const addSetBtn = document.querySelector('.btn.btn-primary.mb-3');
+            addSetBtn.disabled = true;
+            fetchStagesAndCharacters().then(() => {
+                addSetBtn.disabled = false;
+                fetchSets();
+            });
+        });
+        function viewSetDetails(button) {
+            const row = button.closest('tr');
+            const setID = row.getAttribute('data-setid');
+            const sessionID = localStorage.getItem('sessionID');
+            fetch('http://localhost:8000/api/matches?sessionID=' + sessionID + '&setID=' + setID)
+                .then(res => res.json())
+                .then(matches => {
+                    let matchDetails = '';
+                    matches.forEach(match => {
+                        const stageName = stages.find(s => s.stageID === match.stage || s.stageID === match.stageID)?.stageName || match.stage;
+                        const userCharName = characters.find(c => c.characterID === match.antChar || c.characterID === match.userCharacter)?.characterName || match.antChar;
+                        const oppCharName = characters.find(c => c.characterID === match.opChar || c.characterID === match.opponentCharacter)?.characterName || match.opChar;
+                        const winText = match.win == 1 ? 'Win' : 'Loss';
+                        matchDetails += `
+                            <tr>
+                                <td>${stageName}</td>
+                                <td>${userCharName}</td>
+                                <td>${oppCharName}</td>
+                                <td>${winText}</td>
+                            </tr>
+                        `;
+                    });
+                    Swal.fire({
+                        title: `Set Details`,
+                        html: `
+                            <div class="table-responsive">
+                                <table class="table table-bordered bg-secondary">
+                                    <thead class="bg-primary text-white">
+                                        <tr>
+                                            <th>Stage</th>
+                                            <th>Your Character</th>
+                                            <th>Opponent Character</th>
+                                            <th>Result</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${matchDetails}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `,
+                        customClass: {
+                            popup: 'responsive-swal-popup'
+                        }
+                    });
+                });
+        }
+        function addNewSet() {
+            Swal.fire({
+                title: 'Add New Set',
+                html: `
+                    <input id="setDate" type="date" class="form-control mb-3" placeholder="Set Date">
+                    <input id="opponentName" type="text" class="form-control mb-3" placeholder="Opponent Name">
+                    <button class="btn btn-primary" id="addMatchBtn" type="button">Add Match</button>
+                    <div id="matchesContainer" class="mt-3"></div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Save Set',
+                didOpen: () => {
+                    document.getElementById('addMatchBtn').onclick = addMatch;
+                },
+                preConfirm: () => {
+                    const date = document.getElementById('setDate').value;
+                    const opponent = document.getElementById('opponentName').value;
+                    const matches = Array.from(document.querySelectorAll('#matchesContainer .match-row')).map(row => {
+                        const stage = row.querySelector('.stage')?.value;
+                        const antChar = row.querySelector('.userCharacter')?.value;
+                        const opChar = row.querySelector('.opponentCharacter')?.value;
+                        const win = row.querySelector('.result')?.value;
+                        return { stage, antChar, opChar, win };
+                    });
+                    // Validation: ensure all fields are filled
+                    if (!date || !opponent || matches.length === 0) {
+                        Swal.showValidationMessage('Please fill out all fields and add at least one match.');
+                        return false;
+                    }
+                    for (const match of matches) {
+                        if (!match.stage || !match.antChar || !match.opChar || typeof match.win === 'undefined') {
+                            Swal.showValidationMessage('Please select a stage, your character, opponent character, and result for every match.');
+                            return false;
+                        }
+                    }
+                    // Debug log
+                    console.log('Submitting matches:', matches);
+                    const sessionID = localStorage.getItem('sessionID');
+                    return fetch('http://localhost:8000/api/sets', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sessionID,
+                            date,
+                            opponent
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(setRes => {
+                        const setID = setRes.setID || setRes.insertId || setRes[0]?.setID;
+                        return Promise.all(matches.map(match =>
+                            fetch('http://localhost:8000/api/matches', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    sessionID,
+                                    setID,
+                                    stage: match.stage,
+                                    opChar: match.opChar,
+                                    antChar: match.antChar,
+                                    win: match.win === 'Win' || match.win === '1' ? 1 : 0
+                                })
+                            })
+                        ));
+                    })
+                    .then(() => {
+                        fetchSets();
+                    });
+                }
+            });
+        }
+        function addMatch() {
+            if (!stages.length || !characters.length) {
+                Swal.showValidationMessage('Stages and characters must be loaded before adding a match.');
+                return;
+            }
+            const container = document.getElementById('matchesContainer');
+            const matchRow = document.createElement('div');
+            matchRow.classList.add('match-row', 'mb-3');
+            // Build stage and character dropdowns
+            let stageOptions = stages.map(s => `<option value="${s.stageID}">${s.stageName}</option>`).join('');
+            let charOptions = characters.map(c => `<option value="${c.characterID}">${c.characterName}</option>`).join('');
+            matchRow.innerHTML = `
+                <select class="form-control mb-1 stage">${stageOptions}</select>
+                <select class="form-control mb-1 userCharacter">${charOptions}</select>
+                <select class="form-control mb-1 opponentCharacter">${charOptions}</select>
+                <select class="form-control mb-1 result">
+                    <option value="1">Win</option>
+                    <option value="0">Loss</option>
+                </select>
+            `;
+            container.appendChild(matchRow);
+        }
+        function updateTable() {
+            const tbody = document.querySelector('#tblSets tbody');
+            const searchValue = document.getElementById('opponentSearch')?.value?.toLowerCase() || '';
+            tbody.innerHTML = '';
+            sets.filter(set => set.opponent.toLowerCase().includes(searchValue)).forEach(set => {
+                tbody.innerHTML += `
+                    <tr data-setid="${set.setID || set.setId || ''}">
+                        <td>${set.date}</td>
+                        <td>${set.opponent}</td>
+                        <td><button class="btn btn-primary" onclick="viewSetDetails(this)">View Details</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        document.getElementById('opponentSearch').addEventListener('input', updateTable);
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            const sessionID = localStorage.getItem('sessionID');
+            if (sessionID) {
+                await fetch('http://localhost:8000/api/logout', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionID })
+                });
+            }
+            localStorage.removeItem('sessionID');
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html>

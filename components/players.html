@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@4.5.2/dist/darkly/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* Target the DataTables search input */
+        .dataTables_filter input {
+            background-color: white !important; /* Set background color to white */
+            color: black; /* Set text color for better contrast */
+            border: 1px solid #ccc; /* Optional: Add a border */
+            border-radius: 4px; /* Optional: Add rounded corners */
+            padding: 5px; /* Optional: Add padding */
+        }
+
+        /* Target the DataTables "Show Entries" dropdown */
+        .dataTables_length select {
+            background-color: white !important; /* Set background color to white */
+            color: black; /* Set text color for better contrast */
+            border: 1px solid #ccc; /* Optional: Add a border */
+            border-radius: 4px; /* Optional: Add rounded corners */
+            padding: 5px; /* Optional: Add padding */
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">Ultimate Coach</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="vod.html">Vod Review</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="players.html">Players</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="matches.html">Matches</a>
+                </li>
+            </ul>
+        </div>
+        <button id="logoutBtn" class="btn btn-outline-light ms-auto ms-lg-3" title="Logout" style="margin-left:auto;">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+    </nav>
+    <div class="d-flex justify-content-center align-items-center vh-100 bg-primary">
+        <div class="card col-11 col-md-6 col-lg-6" id="crdTitle">
+            <div class="card-body">
+                <h3 class="text-center">Opponents</h3>
+                <!-- Add table-responsive class to make the table scrollable -->
+                <div class="table-responsive">
+                    <table id="tblPlayers" class="table table-bordered">
+                        <thead class="bg-primary">
+                            <tr>
+                                <th>Player Name</th>
+                                <th>Characters</th>
+                                <th>View Profile</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white text-dark">
+                            <tr>
+                                <td>Draonic</td>
+                                <td>P Plant</td>
+                                <td><button class="btn btn-primary" onclick="showPlayerName(this)">View Profile</button></td>
+                            </tr>
+                            <tr>
+                                <td>Frosty</td>
+                                <td>Ice Climbers</td>
+                                <td><button class="btn btn-primary" onclick="showPlayerName(this)">View Profile</button></td>
+                            </tr>
+                           
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>  
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="js/lib/dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        let sets = [];
+        let characters = [];
+        let opponents = {};
+
+        async function fetchSetsAndCharacters() {
+            const sessionID = localStorage.getItem('sessionID');
+            const [setsRes, charsRes] = await Promise.all([
+                fetch('http://localhost:8000/api/sets?sessionID=' + sessionID).then(r => r.json()),
+                fetch('http://localhost:8000/api/characters?sessionID=' + sessionID).then(r => r.json())
+            ]);
+            sets = setsRes;
+            characters = charsRes;
+        }
+
+        async function fetchOpponentCharacters() {
+            const sessionID = localStorage.getItem('sessionID');
+            opponents = {};
+            for (const set of sets) {
+                const setID = set.setID || set.setId;
+                const opponentName = set.opponent;
+                if (!opponentName) continue;
+                if (!opponents[opponentName]) opponents[opponentName] = new Set();
+                const matches = await fetch('http://localhost:8000/api/matches?sessionID=' + sessionID + '&setID=' + setID).then(r => r.json());
+                for (const match of matches) {
+                    if (match.opChar) opponents[opponentName].add(match.opChar);
+                }
+            }
+        }
+
+        function getCharacterNameById(id) {
+            const char = characters.find(c => c.characterID == id);
+            return char ? char.characterName : id;
+        }
+
+        function updatePlayersTable() {
+            const tbody = document.querySelector('#tblPlayers tbody');
+            tbody.innerHTML = '';
+            for (const [opponent, charSet] of Object.entries(opponents)) {
+                const charNames = Array.from(charSet).map(getCharacterNameById).join(', ');
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${opponent}</td>
+                        <td>${charNames}</td>
+                        <td><button class="btn btn-primary" onclick="showPlayerName(this)">View Profile</button></td>
+                    </tr>
+                `;
+            }
+        }
+
+        async function loadPlayers() {
+            await fetchSetsAndCharacters();
+            await fetchOpponentCharacters();
+            updatePlayersTable();
+            $('#tblPlayers').DataTable();
+        }
+
+        function showPlayerName(button) {
+            const row = button.closest('tr');
+            const playerName = row.cells[0].textContent.trim();
+            // Store player name in localStorage and redirect
+            localStorage.setItem('selectedOpponent', playerName);
+            window.location.href = 'single.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPlayers();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            const sessionID = localStorage.getItem('sessionID');
+            if (sessionID) {
+                await fetch('http://localhost:8000/api/logout', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionID })
+                });
+            }
+            localStorage.removeItem('sessionID');
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html>

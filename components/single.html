@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@4.5.2/dist/darkly/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">Ultimate Coach</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="vod.html">Vod Review</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="players.html">Players</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="matches.html">Matches</a>
+                </li>
+            </ul>
+        </div>
+        <button id="logoutBtn" class="btn btn-outline-light ms-auto ms-lg-3" title="Logout" style="margin-left:auto;">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+    </nav>
+
+    <center>
+    <h1>Player 2</h1>
+    </center>
+
+    <!-- Responsive Content Section -->
+    <div class="container mt-4">
+        <div class="row g-4">
+            <!-- Win Rate Card -->
+            <div class="col-12 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <label class="me-1">Your Character:</label>
+                            <select id="drpUserChar" class="form-select w-auto d-inline-block mx-1"></select>
+                            <label class="me-1">Opponent Character:</label>
+                            <select id="drpOppChar" class="form-select w-auto d-inline-block mx-1"></select>
+                        </div>
+                        <h3 class="text-center text-primary">Win Rate</h3>
+                        <canvas id="myPieChart" style="max-width: 100%; height: auto;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stages Table Card -->
+            <div class="col-12 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <label class="me-1">Your Character:</label>
+                            <select id="drpUserChar2" class="form-select w-auto d-inline-block mx-1"></select>
+                            <label class="me-1">Opponent Character:</label>
+                            <select id="drpOppChar2" class="form-select w-auto d-inline-block mx-1"></select>
+                        </div>
+                        <h1 class="text-center text-primary">Stages</h1>
+                        <table id="tblStages" class="table table-bordered">
+                            <thead class="bg-primary text-white">
+                                <tr>
+                                    <th>Stage Name</th>
+                                    <th>Win Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white text-dark">
+                                <tr>
+                                    <td>Battlefield</td>
+                                    <td>75%</td>
+                                </tr>
+                                <tr>
+                                    <td>Final Destination</td>
+                                    <td>82%</td>
+                                </tr>
+                                <tr>
+                                    <td>Pokémon Stadium 2</td>
+                                    <td>68%</td>
+                                </tr>
+                                <tr>
+                                    <td>Smashville</td>
+                                    <td>55%</td>
+                                </tr>
+                                <tr>
+                                    <td>Town and City</td>
+                                    <td>60%</td>
+                                </tr>
+                                <tr>
+                                    <td>Kalos Pokémon League</td>
+                                    <td>45%</td>
+                                </tr>
+                                <tr>
+                                    <td>Hollow Bastion</td>
+                                    <td>50%</td>
+                                </tr>
+                                <tr>
+                                    <td>Small Battlefield</td>
+                                    <td>70%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes Table -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="text-center text-primary">Notes</h3>
+                        <div class="table-responsive">
+                            <table id="tblNotes" class="table table-bordered">
+                                <thead class="bg-primary text-white">
+                                    <tr>
+                                        <th>Date Taken</th>
+                                        <th>View</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white text-dark">
+                                    <tr>
+                                        <td>2025-05-13</td>
+                                        <td><button class="btn btn-primary" onclick="viewNote('This is a note about Pikachu.')">View</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>2025-05-14</td>
+                                        <td><button class="btn btn-primary" onclick="viewNote('This is a note about Mario.')">View</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Dynamic Opponent Profile ---
+        const selectedOpponent = localStorage.getItem('selectedOpponent');
+        document.querySelector('h1').textContent = selectedOpponent ? selectedOpponent : 'Player';
+        let matches = [];
+        let stages = [];
+        let characters = [];
+        let notes = [];
+        let selectedUserChar = 'all';
+        let selectedOppChar = 'all';
+        const sessionID = localStorage.getItem('sessionID');
+
+        async function fetchData() {
+            if (!sessionID || !selectedOpponent) return;
+            // Fetch matches vs this opponent
+            matches = await fetch('http://localhost:8000/api/playerMatches?sessionID=' + sessionID + '&opponent=' + selectedOpponent).then(r => r.json());
+            stages = await fetch('http://localhost:8000/api/stages?sessionID=' + sessionID).then(r => r.json());
+            characters = await fetch('http://localhost:8000/api/characters?sessionID=' + sessionID).then(r => r.json());
+            // Fetch notes
+            notes = await fetch('http://localhost:8000/api/playerNotes?sessionID=' + sessionID + '&opponent=' + selectedOpponent).then(r => r.json());
+        }
+
+        function getCharacterNameById(id) {
+            const char = characters.find(c => c.characterID == id);
+            return char ? char.characterName : id;
+        }
+        function getStageNameById(id) {
+            const stage = stages.find(s => s.stageID == id);
+            return stage ? stage.stageName : id;
+        }
+
+        function getPlayedUserCharIDs() {
+            const ids = new Set();
+            for (const m of matches) {
+                if (m.antChar) ids.add(m.antChar);
+            }
+            return Array.from(ids);
+        }
+        function getPlayedOppCharIDs() {
+            const ids = new Set();
+            for (const m of matches) {
+                if (m.opChar) ids.add(m.opChar);
+            }
+            return Array.from(ids);
+        }
+
+        function populateCharacterDropdowns() {
+            const drpUser = document.getElementById('drpUserChar');
+            const drpOpp = document.getElementById('drpOppChar');
+            const userIDs = getPlayedUserCharIDs();
+            const oppIDs = getPlayedOppCharIDs();
+            const userChars = characters.filter(c => userIDs.includes(c.characterID));
+            const oppChars = characters.filter(c => oppIDs.includes(c.characterID));
+            drpUser.innerHTML = '<option value="all">All</option>' + userChars.map(c => `<option value="${c.characterID}">${c.characterName}</option>`).join('');
+            drpOpp.innerHTML = '<option value="all">All</option>' + oppChars.map(c => `<option value="${c.characterID}">${c.characterName}</option>`).join('');
+        }
+
+        function filterMatches() {
+            let filtered = matches;
+            if (selectedUserChar !== 'all') filtered = filtered.filter(m => m.antChar == selectedUserChar);
+            if (selectedOppChar !== 'all') filtered = filtered.filter(m => m.opChar == selectedOppChar);
+            return filtered;
+        }
+
+        function calculateStats() {
+            const filteredMatches = filterMatches();
+            const winCount = filteredMatches.filter(m => m.win == 1).length;
+            const lossCount = filteredMatches.filter(m => m.win == 0).length;
+            const stageStats = {};
+            for (const s of stages) {
+                const stageMatches = filteredMatches.filter(m => m.stage == s.stageID);
+                const stageWins = stageMatches.filter(m => m.win == 1).length;
+                const stageTotal = stageMatches.length;
+                stageStats[s.stageID] = stageTotal > 0 ? Math.round((stageWins / stageTotal) * 100) : null;
+            }
+            return { winCount, lossCount, stageStats };
+        }
+
+        function updatePieChart(chart, winCount, lossCount) {
+            chart.data.datasets[0].data = [winCount, lossCount];
+            chart.update();
+        }
+
+        function updateStagesTable(stageStats) {
+            const tbody = document.querySelector('#tblStages tbody');
+            tbody.innerHTML = '';
+            const filteredMatches = filterMatches();
+            if (!filteredMatches.length) {
+                tbody.innerHTML = '<tr><td colspan="2">No match data found.</td></tr>';
+                return;
+            }
+            for (const s of stages) {
+                const winRate = stageStats[s.stageID];
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${s.stageName}</td>
+                        <td>${winRate !== null ? winRate + '%' : 'N/A'}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        function updateNotesTable() {
+            const tbody = document.querySelector('#tblNotes tbody');
+            tbody.innerHTML = '';
+            if (!notes.length) {
+                tbody.innerHTML = '<tr><td colspan="2">No notes found.</td></tr>';
+                return;
+            }
+            for (const n of notes) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${n.date}</td>
+                        <td><button class="btn btn-primary" onclick="viewNote('${n.note.replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/\r?\n/g, '\\n')}')">View</button></td>
+                    </tr>
+                `;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchData();
+            populateCharacterDropdowns();
+            // Sync both sets of dropdowns
+            document.getElementById('drpUserChar2').innerHTML = document.getElementById('drpUserChar').innerHTML;
+            document.getElementById('drpOppChar2').innerHTML = document.getElementById('drpOppChar').innerHTML;
+            // Pie chart setup
+            let { winCount, lossCount, stageStats } = calculateStats();
+            const successColor = getComputedStyle(document.documentElement).getPropertyValue('--bs-success').trim() || '#28a745';
+            const dangerColor = getComputedStyle(document.documentElement).getPropertyValue('--bs-danger').trim() || '#dc3545';
+            const ctx = document.getElementById('myPieChart').getContext('2d');
+            const data = {
+                labels: ['Win', 'Loss'],
+                datasets: [{
+                    label: 'Win Rate',
+                    data: [winCount, lossCount],
+                    backgroundColor: [successColor, dangerColor],
+                    borderWidth: 1
+                }]
+            };
+            const config = {
+                type: 'pie',
+                data: data,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Win Rate' }
+                    }
+                }
+            };
+            const pieChart = new Chart(ctx, config);
+            updateStagesTable(stageStats);
+            updateNotesTable();
+            // Dropdown change events (sync both sets)
+            function onDropdownChange() {
+                selectedUserChar = document.getElementById('drpUserChar').value;
+                selectedOppChar = document.getElementById('drpOppChar').value;
+                document.getElementById('drpUserChar2').value = selectedUserChar;
+                document.getElementById('drpOppChar2').value = selectedOppChar;
+                const stats = calculateStats();
+                updatePieChart(pieChart, stats.winCount, stats.lossCount);
+                updateStagesTable(stats.stageStats);
+            }
+            function onDropdownChange2() {
+                selectedUserChar = document.getElementById('drpUserChar2').value;
+                selectedOppChar = document.getElementById('drpOppChar2').value;
+                document.getElementById('drpUserChar').value = selectedUserChar;
+                document.getElementById('drpOppChar').value = selectedOppChar;
+                const stats = calculateStats();
+                updatePieChart(pieChart, stats.winCount, stats.lossCount);
+                updateStagesTable(stats.stageStats);
+            }
+            document.getElementById('drpUserChar').addEventListener('change', onDropdownChange);
+            document.getElementById('drpOppChar').addEventListener('change', onDropdownChange);
+            document.getElementById('drpUserChar2').addEventListener('change', onDropdownChange2);
+            document.getElementById('drpOppChar2').addEventListener('change', onDropdownChange2);
+            // DataTable for notes
+            $('#tblNotes').DataTable();
+        });
+
+        // Function to display note content in a SweetAlert popup
+        function viewNote(noteContent) {
+            Swal.fire({
+                title: 'Note Details',
+                html: noteContent.replace(/\n/g, '<br>'),
+                icon: 'info',
+                confirmButtonText: 'Close'
+            });
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            const sessionID = localStorage.getItem('sessionID');
+            if (sessionID) {
+                await fetch('http://localhost:8000/api/logout', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionID })
+                });
+            }
+            localStorage.removeItem('sessionID');
+            window.location.href = 'login.html';
+        });
+    </script>
+
+    <script src="js/lib/dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Coach - Register</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@4.5.2/dist/darkly/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-primary">
+
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item active">Login</li>
+    </ol>
+
+    <form class="card col-12 col-md-6 offset-md-3 col-lg-4 offset-lg-4 mt-5 bg-secondary" id="frmLogin">
+        <div class="card-body">
+            <h1 class="text-center mb-0 text-success">Ultimate Coach</h1>
+            <h3 class="text-center text-success mb-4"> Login</h3>
+            <input id="txtUsernameL" class="form-control" type="email" placeholder="johndoe@email.com" aria-label="email">
+            <input id="txtPasswordL" class="form-control mt-2" type="password" placeholder="password" aria-label="password">
+            <hr />
+            <button class="btn btn-success col-12 mt-2" type="button" id="btnLogin">Log In</button>
+            <button class="btn btn-link col-12 mt-0" type="button" id="btnSwapLogin">Need an account, register here</button>
+        </div>
+    </form>
+
+    <form class="card col-12 col-md-6 offset-md-3 col-lg-4 offset-lg-4 mt-5 bg-secondary" id="frmRegister" style="display:none;">
+        <div class="card-body">
+            <center><h3 id="hdDirection" aria-label="FormTitle" class="text-center mb-0 text-success"> Fill out the following items to be registered!<h3></center>
+            <h5 id="hdLoginInfo" aria-label="Login Info Section" class=" mb-3"> Login Info</h5>
+            <input id="txtEmail" type="email" required aria-required placeholder="JohnDoe@gmail.com" aria-label="email" class="form-control mt-2 ml-4">
+            <input id="txtPassword" type="password" required aria-required placeholder="Password" aria-label="password" class="form-control mt-2 ml-4">
+            <input id="txtConfirmPassword" type="password" required aria-required placeholder="Confirm Password" aria-label="confirm password" class="form-control mt-2 ml-4">
+            <button type="submit" class="btn btn-success col-12 mt-3 ml-4" id="btnRegister">Register</button>
+            <button class="btn btn-link col-12 mt-0 text-center ml-4" type="button" id="btnSwapReg">Done here? Go back to log in!</button>
+        </div>
+    </form>
+    <br><br>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+   
+    <script>
+        $("#btnRegister").on('click', function () {
+            event.preventDefault();
+            const regEmail = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
+            let blnError = false;
+            let strMessage = '';
+
+            const strPass = $('#txtPassword').val();
+            if (strPass.length < 1) {
+                blnError = true;
+                strMessage += "<p>Password cannot be blank.</p>";
+            }
+
+            const strCheckpass = $('#txtConfirmPassword').val();
+            if (strCheckpass.length < 1) {
+                blnError = true;
+                strMessage += "<p>Confirm Password cannot be blank.</p>";
+            }
+
+            const strEmail = $("#txtEmail").val();
+            if (strEmail.length < 1 || !regEmail.test(strEmail)) {
+                blnError = true;
+                strMessage += "<p>Please enter a valid email address.</p>";
+            }
+
+            if (strPass !== strCheckpass) {
+                blnError = true;
+                Swal.fire({
+                    title: "Oh no, you have an error!",
+                    text: "Passwords have to match",
+                    icon: "error"
+                });
+            }
+
+            if (blnError) {
+                Swal.fire({
+                    title: "There's more to do!",
+                    html: strMessage,
+                    icon: "warning"
+                });
+                return false;
+            } else {
+                // Use fetch to call /api/register
+                fetch('http://localhost:8000/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: strEmail,
+                        pass: strPass,
+                        checkPass: strCheckpass
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.sessionID) {
+                        localStorage.setItem('sessionID', data.sessionID);
+                        Swal.fire({
+                            title: "Sweet!",
+                            text: "You have been registered!",
+                            icon: "success"
+                        }).then(function () {
+                            $('#frmRegister').trigger('reset');
+                            $('#frmRegister').slideUp('slow');
+                            $('#frmLogin').slideDown('fast');
+                            window.location.href = 'index.html';
+                        });
+                    } else {
+                        Swal.fire({
+                            title: "Registration Error",
+                            text: data.error || 'Unknown error',
+                            icon: "error"
+                        });
+                    }
+                })
+                .catch(() => {
+                    Swal.fire({
+                        title: "Registration Error",
+                        text: 'Could not connect to server',
+                        icon: "error"
+                    });
+                });
+            }
+        });
+
+        $("#btnLogin").on('click', function () {
+            event.preventDefault();
+            const regEmail = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
+            let blnError = false;
+            let strMessage = '';
+
+            const strPass = $('#txtPasswordL').val();
+            if (strPass.length < 1) {
+                blnError = true;
+                strMessage += "<p>Password cannot be blank.</p>";
+            }
+
+            const strUser = $("#txtUsernameL").val();
+            if (strUser.length < 1 || !regEmail.test(strUser)) {
+                blnError = true;
+                strMessage += "<p>Please enter a valid email address.</p>";
+            }
+
+            if (blnError) {
+                Swal.fire({
+                    title: "Sorry, you have an error!",
+                    html: strMessage,
+                    icon: "warning"
+                });
+                return false;
+            } else {
+                // Use fetch to call /api/login
+                fetch('http://localhost:8000/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user: strUser,
+                        pass: strPass
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.sessionID) {
+                        localStorage.setItem('sessionID', data.sessionID);
+                        Swal.fire({
+                            title: "Welcome!",
+                            text: "You have been logged in!",
+                            icon: "success"
+                        }).then(function () {
+                            $('#frmLogin').trigger('reset');
+                            window.location.href = 'index.html';
+                            // Redirect or show logged-in UI here if needed
+                        });
+                    } else {
+                        Swal.fire({
+                            title: "Login Error",
+                            text: data.error || 'Unknown error',
+                            icon: "error"
+                        });
+                    }
+                })
+                .catch(() => {
+                    Swal.fire({
+                        title: "Login Error",
+                        text: 'Could not connect to server',
+                        icon: "error"
+                    });
+                });
+            }
+        });
+
+        $('#btnSwapLogin').on('click', function () {
+            $('#frmLogin').slideUp('slow');
+            $('#frmRegister').slideDown('fast');
+        });
+
+        $('#btnSwapReg').on('click', function () {
+            $('#frmRegister').slideUp('slow');
+            $('#frmLogin').slideDown('fast');
+        });
+    </script>
+</body>
+</html>
